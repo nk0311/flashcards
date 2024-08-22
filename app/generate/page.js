@@ -1,7 +1,11 @@
 'use client'
 
 import {useUser} from '@clerk/nextjs'
+import {Container, Box, Typography, Paper, TextField, CardActionArea, CardContent} from '@mui/material'
+import {writeBatch} from 'firebase/firestore'
 import {useRouter} from 'next/navigation'
+import {useState} from 'react'
+
 
 export default function Generate() {
     const {isLoaded, isSignedIn, user} = useUser()
@@ -54,13 +58,77 @@ export default function Generate() {
             }
             else{
                 collections.push({name})
-                batch.set(userDocRed, {flashcards: collections}, {merge})
+                batch.set(userDocRed, {flashcards: collections}, {merge: true})
             }
         }
+        else{
+            batch.set(userDocRf, {flashcards: [{name}]})
+        }
 
+        const colRef = collection(userDocRef, name)
+        flashcards.forEach((flashcard) => {
+            const cardDocRef = doc(colRef)
+            batch.set(cardDocRef, flashcard)
+        })
+
+        await batch.commit()
+        handleClose()
+        router.push(`/flashcards`)
     }
 
+    return (
+        <Container maxWidth="md">
+            <Box sx={{
+                mt:4, mb: 6, display: 'flex', flexDirection: 'column', alignItems: 'center'
+            }}>
+                <Typography variant="h4">Generate Flashcards</Typography>
+                <Paper sx={{p: 4, width: '100%'}}>
+                    <TextField value = {text}
+                    onChange={(e) => setText(e.target.value)}
+                    label ="Enter Text"
+                    fullWidth
+                    multiline
+                    rows={4}
+                    variant = "outlined"
+                    sx={{
+                        mb: 2, 
+                    }}
+                />
+                <Button
+                variant="contained"
+                color="primary"
+                onClick={handleSubmit}
+                fullWidth
+                >
+                  {` `}
+                  Submit
+                </Button>
+                </Paper>
+            </Box>
 
-
+            {flashcards.length > 0 && (
+              <Box sx={{mt: 4}}>
+                <Typography variant="h5">Flashcards Preview</Typography>
+                <Grid contained spacing={3}>
+                  {flashcards.map((flashcard, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={index}>
+                      <Card>
+                          <CardActionArea
+                          onClick={() => {
+                            handleCardClick(index)
+                          }}
+                        >
+                          <CardContent>
+                            <Box></Box>
+                          </CardContent>
+                        </CardActionArea>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+        </Container>
+            )
 
 }
